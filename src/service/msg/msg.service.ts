@@ -1,119 +1,131 @@
-import { promises as fs } from 'fs'
-import path from 'path'
-import type { ParsedMsgFile } from './msg.utils'
-import { parseFile, formatParsedData } from './msg.utils.js'
-import { logger } from '../logger/logger.service.js'
+import { promises as fs } from 'fs';
+import { join } from 'path';
+// Import MsgReader with createRequire for ES modules
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const MsgReader = require('@kenjiuno/msgreader');
+import { emailToSkip, sanitizeMailContent } from './msg.utils';
+import { askOllamaMistral } from '../ollama/ollama.service';
+import logger from '../logger/logger.service';
+import { FileData, ExtractedContactInfo } from './msg.type';
 
-export interface MsgServiceOptions {
-  inputDir: string
-  outputDir?: string
-  extractAttachments?: boolean
-}
 
-export class MsgService {
-  private options: MsgServiceOptions
+const msgMap: Map<string, ExtractedContactInfo> = new Map();
+const responses: any[] = [];
 
-  constructor(options: MsgServiceOptions) {
-    this.options = {
-      extractAttachments: false,
-      ...options
+async function parseAndLoadMsgFiles() {
+  const msgDir = join(process.cwd(), 'src', 'input', '.msg');
+
+  try {
+    // Read all files in the .msg directory
+    const files = await fs.readdir(msgDir);
+    const msgFiles = files.filter(file => file.toLowerCase().endsWith('.msg'));
+
+    if (msgFiles.length === 0) {
+      logger.info('No .msg files found in directory', { directory: msgDir });
+      return;
     }
-  }
 
-  async processAllMsgFiles(): Promise<ParsedMsgFile[]> {
-    logger.info('Starting MSG file processing', { inputDir: this.options.inputDir })
-    
-    try {
-      const msgFiles = await this.findMsgFiles()
-      logger.info(`Found ${msgFiles.length} MSG files to process`)
-      
-      const results: ParsedMsgFile[] = []
-      
-      for (const filePath of msgFiles) {
-        const parsed = await this.processSingleFile(filePath)
-        if (parsed) {
-          results.push(parsed)
+    logger.info(`Found ${msgFiles.length} .msg files to parse`);
+    let index = 0;
+
+    // Group .msg file per senderEmail to avoid duplicate processing
+
+    for (const fileName of msgFiles) {
+      const filePath = join(msgDir, fileName);
+
+      try {
+        // logger.info(`Parsing file: ${fileName}`);
+        console.log('='.repeat(60));
+        console.log('index', index)
+        // Read the file as buffer
+        const fileBuffer = await fs.readFile(filePath);
+
+        // Parse the .msg file
+        const msgReader = new MsgReader.default(fileBuffer);
+        const fileData: FileData = msgReader.getFileData();
+        const sanitizedMsg = { ...fileData, body: sanitizeMailContent(fileData.body) || '' };
+        // !emailToSkip(sanitizedMsg.body, fileData.senderEmail) && 
+        if (!msgMap.get(fileData.senderEmail) && sanitizedMsg.body) {
+          logger.info('Processing new email', { senderEmail: fileData?.senderEmail || 'Unknown email' });
+          // logger.info(`Processing email from: ${fileData?.senderEmail || 'Unknown email'}`);
+          const ollamaPromptBody = JSON.stringify({
+            messageId: fileData?.messageId || 'Unknown id',
+            senderName: fileData?.senderName || 'Unknown sender',
+            senderEmail: fileData?.senderEmail.toLocaleLowerCase() || 'Unknown email',
+            body: sanitizedMsg.body || 'No body content',
+          })
+
+          let response = await askOllamaMistral(ollamaPromptBody);
+          console.log('response', response)
+
+          if (!response) {
+            response = await askOllamaMistral(ollamaPromptBody);
+            if (!response) {
+              console.warn('Ollama did not return a valid response after two attempts, skipping this email.', { senderEmail: fileData?.senderEmail || 'Unknown email' });
+              continue;
+            }
+          }
+
+          logger.info("RAW_DATA_FROM_MSG", {
+            senderEmail: fileData?.senderEmail || 'Unknown email',
+            body: sanitizedMsg.body || 'No body content',
+            senderName: fileData?.senderName || 'Unknown sender',
+          });
+          logger.info("OLLAMA_RESPONSE", response);
+          responses.push(response);
+          msgMap.set(fileData.senderEmail, response);
         }
+        index++;
+        console.log('='.repeat(60));
+      } catch (error) {
+        logger.error(`Failed to parse .msg file`, {
+          fileName,
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
-      
-      logger.info(`Successfully processed ${results.length} out of ${msgFiles.length} MSG files`)
-      return results
-    } catch (error) {
-      logger.error('Failed to process MSG files', {
-        inputDir: this.options.inputDir,
-        error: error instanceof Error ? error.message : String(error)
-      })
-      return []
-    }
-  }
-
-  async processSingleFile(filePath: string): Promise<ParsedMsgFile | null> {
-    logger.info('Processing MSG file', { filePath })
-    
-    try {
-      const parsed = await parseFile(filePath)
-      
-      if (!parsed) {
-        logger.warn('Failed to parse MSG file', { filePath })
-        return null
-      }
-
-      // Log the parsed data
-      logger.info('MSG file parsed successfully', {
-        fileName: parsed.fileName,
-        subject: parsed.subject,
-        from: parsed.from,
-        bodyLength: parsed.body?.length || 0,
-      })
-
-      return parsed
-    } catch (error) {
-      logger.error('Error processing MSG file', {
-        filePath,
-        error: error instanceof Error ? error.message : String(error)
-      })
-      return null
-    }
-  }
-
-  private async findMsgFiles(): Promise<string[]> {
-    try {
-      const files = await fs.readdir(this.options.inputDir)
-      const msgFiles = files
-        .filter(file => path.extname(file).toLowerCase() === '.msg')
-        .map(file => path.join(this.options.inputDir, file))
-      
-      logger.info('Found MSG files', { count: msgFiles.length, directory: this.options.inputDir })
-      return msgFiles
-    } catch (error) {
-      logger.error('Failed to find MSG files', {
-        inputDir: this.options.inputDir,
-        error: error instanceof Error ? error.message : String(error)
-      })
-      return []
-    }
-  }
-
-  async generateReport(parsedFiles: ParsedMsgFile[]): Promise<string> {
-    const report = [
-      `MSG Files Processing Report`,
-      `Generated: ${new Date().toISOString()}`,
-      `Total Files: ${parsedFiles.length}`,
-      ``,
-      `Summary:`,
-      `- Files with subjects: ${parsedFiles.filter(f => f.subject).length}`,
-      ``,
-      `Files:`,
-      ...parsedFiles.map(file => formatParsedData(file))
-    ].join('\n')
-
-    if (this.options.outputDir) {
-      await fs.mkdir(this.options.outputDir, { recursive: true })
-      const reportPath = path.join(this.options.outputDir, `msg-report-${Date.now()}.txt`)
-      await fs.writeFile(reportPath, report)
-      logger.info('Report generated', { reportPath })
     }
 
-    return report
+    // logger.info('MSG file parsing completed');
+
+    // logger.info('Parsed contacts', msgMap);
+
+    // Write all responses to JSON file
+    const outputPath = join(process.cwd(), 'responses.json');
+    await fs.writeFile(outputPath, JSON.stringify(responses, null, 2), 'utf8');
+    logger.info(`All responses written to: ${outputPath}`);
+
+  } catch (error) {
+    logger.error('Failed to read .msg directory', {
+      directory: msgDir,
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 }
+
+export { parseAndLoadMsgFiles };
+
+
+// {
+//   "first_name": "string or null",
+//   "last_name": "string or null",
+//   "company_name": "string or null",
+//   "address": "street address or null",
+//   "city": "string or null",
+//   "post_code": "string or null",
+//   "landline": "string or null",
+//   "mobile": "string or null",
+//   "email": "string or null",
+//   "role": "job title or null"
+// }
+
+// {
+//   "body": "Bonjour, Je serai de retour au bureau le 8 janvier 2024. En cas d'urgence, vous pouvez joindre le standard d'ALL IN SPACE au 03.20.04.04.51. A bientôt Elodie HUET",
+//   "level": "info",
+//   "message": "DIANTRE",
+//   "messageId": "<84db9c2d3ffb4b3cb4fdca83178dc756@DAG15EX2.local>",
+//   "senderEmail": "ehuet@all-in-space.com",
+//   "senderName": "Elodie HUET",
+//   "service": "mail-miner",
+//   "timestamp": "2025-09-21 13:06:12"
+// }

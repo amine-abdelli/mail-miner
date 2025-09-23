@@ -1,0 +1,43 @@
+[
+  {
+    "contact": {
+      "first_name": "Louis",
+      "last_name": "Tesse",
+      "full_name": "Louis Tesse",
+      "department": "Equipier Marchés Aristide (Light in Shop)"
+    },
+    "company": "Aristide",
+    "contact_info": {
+      "primary_email": "ltesse@aristide.paris",
+      "landline_phone": null,
+      "mobile_phone": "+33 6 74 06 50 21"
+    },
+    "address": {
+      "street": "A15 - 333, rue Marguerite Perey",
+      "city": "77 127 Lieusaint",
+      "postal_code": null,
+      "country": "France",
+      "full_address": "A15 - 333, rue Marguerite Perey 77 127 Lieusaint"
+    }
+  },
+  {
+    "contact": {
+      "first_name": "Marion",
+      "last_name": "Cleret",
+      "full_name": "Marion Cleret"
+    },
+    "company": "Aristide",
+    "contact_info": {
+      "primary_email": null,
+      "landline_phone": "+33 1 64 13 07 09",
+      "mobile_phone": null
+    },
+    "address": {
+      "street": "l'Usine Innovespace A15 - 333, rue Marguerite Perey",
+      "city": "77 127 Lieusaint",
+      "postal_code": null,
+      "country": "France",
+      "full_address": "l'Usine Innovespace A15 - 333, rue Marguerite Perey 77 127 Lieusaint"
+    }
+  }
+]

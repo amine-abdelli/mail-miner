@@ -81,7 +81,8 @@ Desktop.ini
 
 # Logs
 *.log
-*.msg
-*.pst
+src/input/.msg/*.msg
+src/input/.pst/*.pst
+src/input/raw/*
 
 node_modules/
