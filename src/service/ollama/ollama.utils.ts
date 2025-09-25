@@ -64,6 +64,7 @@ Extract contact information from the provided email content. Return ONLY valid J
 06-07 (mobiles),
 09 (VoIP)
 - If information is not found, use null
+- RETURN ONLY AND ONLY THE JSON OBJECT WITHOUT ANY EXTRA TEXT
 
 ## Output format:
 Return only this JSON (no markdown, no explanation): {
@@ -122,7 +123,7 @@ Return only this JSON (no markdown, no explanation): {
 }
 
 
-Now analyze this email and return ONLY the JSON output, NO TEXT AT ALL OTHER THAN THE OBJECT: {OBJECT_TO_ANALYZE}`;
+Now analyze this email and return ONLY the JSON output, NO TEXT AT ALL OTHER THAN THE OBJECT: \n {OBJECT_TO_ANALYZE}`;
 
 function getPrompt(objectToAnalyze: string) {
   return prompt.replace('{OBJECT_TO_ANALYZE}', objectToAnalyze);

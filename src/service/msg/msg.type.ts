@@ -89,7 +89,7 @@ interface EmailData {
 /**
  * Interface pour la structure complète du fichier
  */
-interface FileData {
+interface RawMsgFileData {
   dataType: 'msg';
   attachments: Attachment[];
   recipients: Recipient[];
@@ -119,6 +119,8 @@ interface FileData {
   internetCodepage: number;
   clientSubmitTime: string;
   messageLocaleId: number;
+  // Optional: Added manually to keep track of the original file name
+  fileName?: string;
 }
 
 /**
@@ -185,7 +187,7 @@ interface ExtractedContactInfo {
 
 export type {
   EmailData,
-  FileData,
+  RawMsgFileData,
   Attachment,
   Recipient,
   EmailMetadata,

@@ -1,5 +1,6 @@
 import { getPrompt } from "./ollama.utils";
 import { ExtractedContactInfo as ExtractedContactData } from "../msg/msg.type";
+import { EOllamaModel } from "./ollama.constats";
 
 interface OllamaResponse {
   /**
@@ -40,12 +41,11 @@ export async function askOllamaMistral(objectToAnalyze: string): Promise<Extract
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mistral:7b',
+        model: EOllamaModel.Qwen,
         prompt: getPrompt(objectToAnalyze),
         stream: false
       })
     });
-    console.log('response ====', response)
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

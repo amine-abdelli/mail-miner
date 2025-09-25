@@ -85,4 +85,12 @@ src/input/.msg/*.msg
 src/input/.pst/*.pst
 src/input/raw/*
 
+msg-from-pst/*.json
+
 node_modules/
+export/output/temp_eml/**/*.png
+*.png
+*.pdf
+finalResponses.json
+responses.json
+rawBodiesForComparison.json

@@ -7,15 +7,26 @@ const MsgReader = require('@kenjiuno/msgreader');
 import { emailToSkip, sanitizeMailContent } from './msg.utils';
 import { askOllamaMistral } from '../ollama/ollama.service';
 import logger from '../logger/logger.service';
-import { FileData, ExtractedContactInfo } from './msg.type';
+import { RawMsgFileData, EmailData } from './msg.type';
+import _ from 'lodash';
 
+async function getFileDataFromMsg(fileName: string): Promise<RawMsgFileData> {
 
-const msgMap: Map<string, ExtractedContactInfo> = new Map();
-const responses: any[] = [];
+  const filePath = join(process.cwd(), 'src', 'input', '.msg', `${fileName}`);
+
+  const fileBuffer = await fs.readFile(filePath);
+
+  // Parse the .msg file
+  const msgReader = new MsgReader.default(fileBuffer);
+  const fileData: RawMsgFileData = msgReader.getFileData();
+
+  return fileData;
+}
 
 async function parseAndLoadMsgFiles() {
   const msgDir = join(process.cwd(), 'src', 'input', '.msg');
-
+  const finalResponses: any[] = [];
+  const rawBodiesForComparison: any[] = [];
   try {
     // Read all files in the .msg directory
     const files = await fs.readdir(msgDir);
@@ -29,24 +40,25 @@ async function parseAndLoadMsgFiles() {
     logger.info(`Found ${msgFiles.length} .msg files to parse`);
     let index = 0;
 
+
+    const msgMap: Map<string, RawMsgFileData & { fileName: string } | null> = new Map();
     // Group .msg file per senderEmail to avoid duplicate processing
-
     for (const fileName of msgFiles) {
-      const filePath = join(msgDir, fileName);
 
+      const fileData = await getFileDataFromMsg(fileName);
+      const fileDataWithFilename = { ...fileData, fileName };
+      if (!msgMap.has(fileDataWithFilename.senderEmail.trim())) {
+        rawBodiesForComparison.push(fileDataWithFilename);
+        msgMap.set(fileDataWithFilename.senderEmail.trim(), fileDataWithFilename);
+      }
+    }
+    for (const [_, _fileData] of msgMap) {
       try {
-        // logger.info(`Parsing file: ${fileName}`);
-        console.log('='.repeat(60));
-        console.log('index', index)
-        // Read the file as buffer
-        const fileBuffer = await fs.readFile(filePath);
-
-        // Parse the .msg file
-        const msgReader = new MsgReader.default(fileBuffer);
-        const fileData: FileData = msgReader.getFileData();
+        // html, 
+        const fileData = await getFileDataFromMsg(_fileData?.fileName || '');
         const sanitizedMsg = { ...fileData, body: sanitizeMailContent(fileData.body) || '' };
-        // !emailToSkip(sanitizedMsg.body, fileData.senderEmail) && 
-        if (!msgMap.get(fileData.senderEmail) && sanitizedMsg.body) {
+
+        if (sanitizedMsg.body) {
           logger.info('Processing new email', { senderEmail: fileData?.senderEmail || 'Unknown email' });
           // logger.info(`Processing email from: ${fileData?.senderEmail || 'Unknown email'}`);
           const ollamaPromptBody = JSON.stringify({
@@ -67,23 +79,17 @@ async function parseAndLoadMsgFiles() {
             }
           }
 
-          logger.info("RAW_DATA_FROM_MSG", {
-            senderEmail: fileData?.senderEmail || 'Unknown email',
-            body: sanitizedMsg.body || 'No body content',
-            senderName: fileData?.senderName || 'Unknown sender',
-          });
-          logger.info("OLLAMA_RESPONSE", response);
-          responses.push(response);
-          msgMap.set(fileData.senderEmail, response);
+          finalResponses.push(response);
         }
-        index++;
-        console.log('='.repeat(60));
+        // HERE WRITE A JSON FILE WITH THE RESPONSES
       } catch (error) {
         logger.error(`Failed to parse .msg file`, {
-          fileName,
           error: error instanceof Error ? error.message : String(error)
         });
       }
+
+      index++;
+      logger.info(`Progress: ${index}/${msgFiles.length} files processed`);
     }
 
     // logger.info('MSG file parsing completed');
@@ -91,10 +97,13 @@ async function parseAndLoadMsgFiles() {
     // logger.info('Parsed contacts', msgMap);
 
     // Write all responses to JSON file
-    const outputPath = join(process.cwd(), 'responses.json');
-    await fs.writeFile(outputPath, JSON.stringify(responses, null, 2), 'utf8');
-    logger.info(`All responses written to: ${outputPath}`);
+    const finalOutputPath = join(process.cwd(), 'finalResponses.json');
+    const rawBodiesForComparisonPath = join(process.cwd(), 'rawBodiesForComparison.json');
 
+    await fs.writeFile(finalOutputPath, JSON.stringify(finalResponses, null, 2), 'utf8');
+    await fs.writeFile(rawBodiesForComparisonPath, JSON.stringify(rawBodiesForComparison, null, 2), 'utf8');
+
+    logger.info(`All responses written to: ${finalOutputPath}`);
   } catch (error) {
     logger.error('Failed to read .msg directory', {
       directory: msgDir,

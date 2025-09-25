@@ -3,7 +3,16 @@
     "allow": [
       "Bash(npm init:*)",
       "Bash(npm install:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(pip3 install:*)",
+      "Bash(python3:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(brew install:*)",
+      "Bash(readpst:*)",
+      "Bash(timeout:*)",
+      "Bash(echo $PATH)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []
