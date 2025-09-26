@@ -88,9 +88,24 @@ src/input/raw/*
 msg-from-pst/*.json
 
 node_modules/
-export/output/temp_eml/**/*.png
-*.png
-*.pdf
-finalResponses.json
-responses.json
-rawBodiesForComparison.json
+src/input/unsorted/*
+
+# Email processing outputs
+src/msg-processor/output/*
+src/pst-processor/output/*
+src/contacts-extractor/*.json
+src/contacts-extractor/*.csv
+src/contacts-extractor/temp/*
+
+# Processing logs
+email_processing_*.log
+
+# Keep directories but ignore contents
+!src/msg-processor/output/.gitkeep
+!src/pst-processor/output/.gitkeep  
+!src/contacts-extractor/.gitkeep
+!src/contacts-extractor/temp/.gitkeep
+
+*.msg
+*.pst
+src/input/unsorted/*

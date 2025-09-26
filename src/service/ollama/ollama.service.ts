@@ -1,6 +1,6 @@
-import { getPrompt } from "./ollama.utils";
+import { getPrompt } from "./prompt";
 import { ExtractedContactInfo as ExtractedContactData } from "../msg/msg.type";
-import { EOllamaModel } from "./ollama.constats";
+import { EOllamaModel } from "./ollama.constant";
 
 interface OllamaResponse {
   /**

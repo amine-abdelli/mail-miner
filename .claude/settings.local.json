@@ -12,7 +12,12 @@
       "Bash(readpst:*)",
       "Bash(timeout:*)",
       "Bash(echo $PATH)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(chmod:*)",
+      "Bash(./setup.sh:*)",
+      "Bash(python test:*)",
+      "Bash(python:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
