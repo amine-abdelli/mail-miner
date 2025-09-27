@@ -123,7 +123,7 @@ Return only this JSON (no markdown, no explanation): {
 }
 
 
-Now analyze this email and return ONLY the JSON output, NO TEXT AT ALL OTHER THAN THE OBJECT: \n {OBJECT_TO_ANALYZE}`;
+Now analyze this email and return ONLY the JSON output, NO TEXT AT ALL OTHER THAN THE OBJECT. You are not allowed to return ANYTHING BUT a JSON OBJECT: \n {OBJECT_TO_ANALYZE}`;
 
 function getPrompt(objectToAnalyze: string) {
   return prompt.replace('{OBJECT_TO_ANALYZE}', objectToAnalyze);
