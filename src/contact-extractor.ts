@@ -183,12 +183,23 @@ async function main() {
     return;
   }
 
+  // Group emails by email address to avoid duplicates
+  const emailGroups = new Map<string, EmailData>();
+  for (const email of emails) {
+    if (!emailGroups.has(email.senderEmail)) {
+      emailGroups.set(email.senderEmail, email);
+    }
+  }
+  
+  const uniqueEmails = Array.from(emailGroups.values());
+  console.log(`Grouped ${emails.length} emails into ${uniqueEmails.length} unique senders`);
+
   const contacts: ContactResult[] = [];
   let processed = 0;
 
   // Process each email
-  for (const email of emails) {
-    console.log(`Processing ${++processed}/${emails.length}: ${email.senderEmail}`);
+  for (const email of uniqueEmails) {
+    console.log(`Processing ${++processed}/${uniqueEmails.length}: ${email.senderEmail}`);
 
     try {
       const { body, extracted_at } = sanitizeBodyContent(email.body)
