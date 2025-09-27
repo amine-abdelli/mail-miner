@@ -109,3 +109,4 @@ email_processing_*.log
 *.msg
 *.pst
 src/input/unsorted/*
+*.csv

@@ -17,7 +17,11 @@
       "Bash(./setup.sh:*)",
       "Bash(python test:*)",
       "Bash(python:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(ollama list:*)",
+      "Bash(tsx:*)",
+      "Bash(npx tsx:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

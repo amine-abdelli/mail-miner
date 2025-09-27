@@ -26,17 +26,11 @@ interface ContactData {
 export function convertToCSV(data: ContactData[]): string {
   const headers = [
     'full_name',
-    'first_name',
-    'last_name',
     'department',
     'company',
     'primary_email',
     'landline_phone',
     'mobile_phone',
-    'street',
-    'city',
-    'postal_code',
-    'country',
     'full_address'
   ];
 
@@ -47,17 +41,11 @@ export function convertToCSV(data: ContactData[]): string {
     console.log(item.contact)
     const row = [
       item.contact?.full_name || '',
-      item.contact?.first_name || '',
-      item.contact?.last_name || '',
-      item.contact?.department,
+      item.contact?.department || '',
       item.company,
       item.contact_info?.primary_email,
       item.contact_info?.landline_phone || '',
       item.contact_info?.mobile_phone || '',
-      item.address?.street,
-      item.address?.city,
-      item.address?.postal_code,
-      item.address?.country,
       item.address?.full_address
     ];
 
@@ -85,6 +73,5 @@ export function processJSONToCSV(): void {
     console.error('Error processing JSON to CSV:', error);
   }
 }
-
 
 processJSONToCSV();
